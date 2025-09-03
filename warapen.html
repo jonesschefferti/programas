@@ -10,17 +10,18 @@
       --pri:#2962ff; --bord:#e5e7eb; --radius:10px;
     }
     *{ box-sizing:border-box; }
-    html,body{ margin:0; background:var(--bg); color:var(--text);
-      font:400 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
-
+    html,body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:400 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    }
     .container{ margin:24px auto; padding:0 16px; }
 
-    /* A4-friendly — largura fixa p/ casar com windowWidth */
+    /* A4-friendly na tela: largura fixa 794 px (base do html2canvas/jsPDF) */
     #content{
       max-width: 794px;
-      width: 794px;            /* fixa a largura capturada pelo html2canvas */
+      width: 794px;
       margin: 0 auto;
-      padding: 16px;           /* respiro interno */
+      padding: 16px;
       background: var(--card);
       border: 1px solid var(--bord);
       border-radius: var(--radius);
@@ -40,8 +41,10 @@
     .section-title{ font-size:16px; font-weight:600; margin:18px 0 10px; }
     label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
 
-    input,select,textarea{ width:100%; padding:10px 12px; border:1px solid var(--bord);
-      border-radius:8px; background:#fff; color:var(--text); }
+    input,select,textarea{
+      width:100%; padding:10px 12px; border:1px solid var(--bord);
+      border-radius:8px; background:#fff; color:var(--text);
+    }
     textarea{ min-height:80px; resize:vertical; }
     img{ max-width:100%; height:auto; display:block; }
 
@@ -63,15 +66,15 @@
     .ac-item:hover, .ac-item.active{ background:#eef2ff; }
     .small{ font-size:12px; color:#555; }
 
-    /* Impressão em retrato A4 */
+    /* Impressão em retrato A4 com dimensões explícitas */
     @page{
-      size: A4 portrait;   /* força retrato */
-      margin: 10mm;        /* margens no spooler */
+      size: 210mm 297mm;    /* A4 retrato: L x A */
+      margin: 10mm;
     }
     @media print{
       body{ background:#fff !important; }
       #content{
-        max-width: 190mm;  /* área útil */
+        max-width: 190mm;
         width: 190mm;
         margin: 0 auto;
         padding: 0;
@@ -97,7 +100,7 @@
              crossorigin="anonymous" />
         <div>
           <div class="empresa">SchefferTec • Smart Solutions</div>
-          <div class="muted">CNPJ 53.773.431/0001-57 • Rua Júlio de Castilhos, 183 – Centro, Novo Hamburgo 93510-365 Fone: (51)3586-1675</div>
+          <div class="muted">CNPJ 53.773.431/0001-57 • Rua Júlio de Castilhos, 183 – Centro, Novo Hamburgo 93510-365 • Fone: (51)3586-1675</div>
         </div>
       </div>
       <div style="text-align:right; min-width:220px;">
@@ -108,14 +111,14 @@
       </div>
     </div>
 
-    
+    <h1>Orçamento de Assistência Técnica</h1>
 
     <div class="grid" style="margin-top:8px">
       <div class="col-8">
         <div class="section-title">Dados do cliente</div>
         <div class="grid">
           <div class="col-6 ac-wrap">
-            <label>Nome </label>
+            <label>Nome (digite para buscar)</label>
             <input id="cliente_nome" autocomplete="off" placeholder="Comece a digitar..." />
             <div id="acClientes" class="ac-list" style="display:none;"></div>
           </div>
@@ -157,7 +160,7 @@
     <table id="itens">
       <thead>
         <tr>
-          <th style="width:38%">Descrição </th>
+          <th style="width:38%">Descrição (digite para buscar)</th>
           <th style="width:16%">Tipo</th>
           <th style="width:12%">Qtd</th>
           <th style="width:16%">Valor unit. (R$)</th>
@@ -204,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.html2canvas = window.html2canvas || html2canvas;
   }
 
-  // Clientes e Produtos (resumo do cadastro)
+  // Clientes (resumo)
   const CLIENTES = [
     { nome: "AGOSTINHO FRANÇA DA SILVA", tel: "" },
     { nome: "ALEXANDRE PENNA", tel: "(51)99958-7303" },
@@ -235,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { nome: "VITOR LUCONI", tel: "(51)99540-0693" },
   ];
 
+  // Produtos/Serviços (resumo)
   const PRODUTOS = [
     { desc:"MEMÓRIA RAM COLOR VERDE 16GB 1 CRUCIAL (CT102464BF832B)", tipo:"Peça", valor:314.00 },
     { desc:"ADAPTADOR 2,5\" HD", tipo:"Peça", valor:20000.00 },
@@ -381,36 +385,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   cliNome.addEventListener('blur',()=>setTimeout(()=>{ cliAC.style.display='none'; },150));
 
-  // PDF A4 retrato — dimensão explícita e base coerente
+  // PDF A4 retrato — dimensões e viewport explícitos
   document.getElementById('btnPdf').addEventListener('click',async()=>{
     try{
       const ctor=window.jspdf?.jsPDF;
       if(!ctor){ alert('jsPDF não carregou. Abra via http(s).'); return; }
 
-      // LxA em pontos — retrato
-      const a4Portrait=[595.28, 841.89];
+      // A4 retrato em pontos (L x A)
+      const A4_PORTRAIT=[595.28,841.89];
+
       const doc=new ctor({
         unit:'pt',
-        format:a4Portrait,
+        format:A4_PORTRAIT,
         orientation:'portrait',
         compress:true
       });
 
-      const pageWidth=a4Portrait;
+      const pageWidth=A4_PORTRAIT[0];
       const marginPt=28.35;              // 10 mm
       const usablePt=pageWidth - marginPt*2;
 
       await doc.html(document.getElementById('content'),{
         x:marginPt, y:marginPt,
         width: usablePt,               // largura útil em pontos
-        windowWidth: 794,              // mesma base do CSS
+        windowWidth: 794,              // base igual ao CSS
         autoPaging:'text',
         html2canvas:{
           scale:1,
           useCORS:true,
           logging:false,
-          width:794,                   // trava a largura do canvas
-          windowWidth:794
+          width:794,                   // trava a largura do bitmap
+          height:1123,                 // ~ 297mm a ~96dpi
+          windowWidth:794,
+          windowHeight:1123
         },
         callback:(d)=>{
           const numero=document.getElementById('orc_num')?.value||'orcamento';
@@ -462,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
 
 
