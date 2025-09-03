@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Orçamento – SchefferTec Smart Solutions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --pri:#2962ff; --bord:#e5e7eb; --radius:10px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; background:var(--bg); color:var(--text);
+      font:400 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+
+    .container{ margin:24px auto; padding:0 16px; }
+
+    /* A4-friendly container: largura fixa e padding interno */
+    #content{
+      max-width: 794px;       /* ≈ 210 mm a ~96 dpi */
+      margin: 0 auto;
+      padding: 16px;          /* evita colar nas bordas */
+      background: var(--card);
+      border: 1px solid var(--bord);
+      border-radius: var(--radius);
+    }
+
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .logo-wrap{ display:flex; align-items:center; gap:12px; }
+    .logo{ height:50px; width:auto; }
+    .empresa{ font-weight:700; font-size:18px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    h1{ margin:10px 0 0; font-size:24px; }
+
+    .grid{ display:grid; gap:12px; grid-template-columns:repeat(12,1fr); }
+    .col-12{ grid-column:span 12; } .col-8{ grid-column:span 8; }
+    .col-6{ grid-column:span 6; } .col-4{ grid-column:span 4; }
+
+    .section-title{ font-size:16px; font-weight:600; margin:18px 0 10px; }
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+
+    input,select,textarea{ width:100%; padding:10px 12px; border:1px solid var(--bord);
+      border-radius:8px; background:#fff; color:var(--text); }
+    textarea{ min-height:80px; resize:vertical; }
+
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ border-bottom:1px solid var(--bord); padding:10px; font-size:14px; text-align:left; }
+    th{ background:#fafafa; color:#333; }
+
+    .actions{ display:flex; gap:10px; margin:16px 0; flex-wrap:wrap; }
+    .btn{ background:var(--pri); color:#fff; border:0; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .btn-outline{ background:transparent; color:var(--pri); border:1px solid var(--pri); }
+    .right{ text-align:right; }
+    .totais{ display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+    .totais div{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+    /* Autocomplete dropdown */
+    .ac-wrap{ position:relative; }
+    .ac-list{ position:absolute; z-index:20; top:100%; left:0; right:0; background:#fff; border:1px solid var(--bord); border-radius:8px; margin-top:4px; max-height:220px; overflow:auto; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    .ac-item{ padding:8px 10px; cursor:pointer; }
+    .ac-item:hover, .ac-item.active{ background:#eef2ff; }
+    .small{ font-size:12px; color:#555; }
+
+    @media (max-width:860px){
+      .col-8,.col-6,.col-4{ grid-column:span 12; }
+      .logo{ height:46px; }
+    }
+    @media print{
+      .no-print{ display:none !important; }
+      body{ background:#fff; }
+      #content{ border:0; border-radius:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div id="content">
+    <div class="header">
+      <div class="logo-wrap">
+        <img id="logoScheffer" class="logo" alt="SchefferTec Smart Solutions"
+             src="https://raw.githubusercontent.com/jonesschefferti/programas/master/Scheffertec.png"
+             crossorigin="anonymous" />
+        <div>
+          <div class="empresa">SchefferTec • Smart Solutions</div>
+          <div class="muted">CNPJ 53.773.431/0001-57 • Rua Presidente Lucena, 3569 – Centro, Estancia Velha 93600-000 Fone: (51) 35861675.</div>
+        </div>
+      </div>
+      <div style="text-align:right; min-width:220px;">
+        <div><strong>Nº Orçamento</strong></div>
+        <input id="orc_num" placeholder="Gerado automaticamente" />
+        <div style="margin-top:6px;"><label style="margin:0;">Data</label><input id="orc_data" type="date" /></div>
+        <div style="margin-top:6px;"><label style="margin:0;">Validade (dias)</label><input id="orc_validade" type="number" value="7" /></div>
+      </div>
+    </div>
+
+    
+
+    <div class="grid" style="margin-top:8px">
+      <div class="col-8">
+        <div class="section-title">Dados do cliente</div>
+        <div class="grid">
+          <div class="col-6 ac-wrap">
+            <label>Nome (digite para buscar)</label>
+            <input id="cliente_nome" autocomplete="off" placeholder="Comece a digitar..." />
+            <div id="acClientes" class="ac-list" style="display:none;"></div>
+          </div>
+          <div class="col-6">
+            <label>Telefone</label>
+            <input id="cliente_tel" placeholder="(xx) xxxxx-xxxx" />
+          </div>
+          <div class="col-12">
+            <label>E-mail</label>
+            <input id="cliente_email" placeholder="email@exemplo.com" />
+          </div>
+          <div class="col-12">
+            <label>Endereço</label>
+            <input id="cliente_end" placeholder="Rua, número, bairro, cidade" />
+          </div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="section-title">Identificação</div>
+        <label>Atendente</label>
+        <input id="atendente" placeholder="Jones Scheffer" />
+        <label>Condição de pagamento</label>
+        <input id="cond_pag" placeholder="Ex.: Pix/Cartão/30 dias" />
+      </div>
+    </div>
+
+    <div class="section-title">Equipamento</div>
+    <div class="grid">
+      <div class="col-4"><label>Tipo</label><input id="eq_tipo" placeholder="Ex.: Notebook, Smartphone" /></div>
+      <div class="col-4"><label>Marca</label><input id="eq_marca" placeholder="Marca" /></div>
+      <div class="col-4"><label>Modelo</label><input id="eq_modelo" placeholder="Modelo" /></div>
+      <div class="col-6"><label>Nº de Série</label><input id="eq_serie" placeholder="Serial" /></div>
+      <div class="col-6"><label>Tensão (V)</label><input id="eq_tensao" placeholder="Ex.: 110, 220" /></div>
+      <div class="col-12"><label>Defeito relatado / Observações</label><textarea id="eq_defeito" placeholder="Descrição do problema relatado"></textarea></div>
+    </div>
+
+    <div class="section-title">Itens de orçamento</div>
+    <div class="muted">Adicione peças/serviços; valores somam automaticamente.</div>
+    <table id="itens">
+      <thead>
+        <tr>
+          <th style="width:38%">Descrição (digite para buscar)</th>
+          <th style="width:16%">Tipo</th>
+          <th style="width:12%">Qtd</th>
+          <th style="width:16%">Valor unit. (R$)</th>
+          <th style="width:16%">Subtotal (R$)</th>
+          <th class="no-print" style="width:10%">Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="actions no-print">
+      <button class="btn" id="addPeca">+ Peça/Insumo</button>
+      <button class="btn btn-outline" id="addMaoObra">+ Mão de obra</button>
+    </div>
+
+    <div class="grid" style="margin-top:10px;">
+      <div class="col-8"><label>Condições e comentários</label><textarea id="condicoes" placeholder="Prazo, garantia, observações..."></textarea></div>
+      <div class="col-4">
+        <div class="section-title">Totais</div>
+        <div class="totais">
+          <div><span>Peças/insumos</span><strong id="tPecas">R$ 0,00</strong></div>
+          <div><span>Mão de obra</span><strong id="tMao">R$ 0,00</strong></div>
+          <div><span>Desconto (R$)</span><input id="desconto" type="number" min="0" step="0.01" value="0" /></div>
+          <div><span>Total</span><strong id="tTotal">R$ 0,00</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions no-print" style="max-width:794px; margin:16px auto 0;">
+    <button class="btn" id="btnPdf">Gerar PDF</button>
+    <button class="btn btn-outline" id="btnPrint">Imprimir</button>
+    <button class="btn btn-outline" id="btnShare">Copiar link com dados</button>
+  </div>
+</div>
+
+<!-- jsPDF + html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Expor html2canvas para jsPDF.html
+  if (typeof window !== 'undefined' && typeof html2canvas !== 'undefined') {
+    window.html2canvas = window.html2canvas || html2canvas;
+  }
+
+  // ===================== Dados (clientes e produtos) =====================
+  const CLIENTES = [
+    { nome: "AGOSTINHO FRANÇA DA SILVA", tel: "" },
+    { nome: "ALEXANDRE PENNA", tel: "(51)99958-7303" },
+    { nome: "ANDRE EFECT", tel: "" },
+    { nome: "ANTONIO PAULO PAIVA", tel: "" },
+    { nome: "ARION OLIVEIRA", tel: "" },
+    { nome: "ASSISTENCIA TECNICA DANIEL LTDA", tel: "" },
+    { nome: "ASSISTENCIA TECNICA DANIEL LTDA (FILIAL)", tel: "(51) 3561-1348" },
+    { nome: "ASTRASAND DO  BRASIL TEC.SAN.LTDA", tel: "(51) 3396-6000" },
+    { nome: "CLIENTE DIVERSOS", tel: "" },
+    { nome: "CONSTRUPISO ACABAMENTOS", tel: "(51) 3527-3286 / (51) 9801-8118" },
+    { nome: "CONSTRUTORA E PAVIMENTADORA PAVICON", tel: "(51) 3396-6000" },
+    { nome: "DIANA DA SILVA CAMPOS", tel: "" },
+    { nome: "EFCT - ESTRATÉGIAS TRIBUTÁRIAS", tel: "(51) 3781-3913 / (51)99695-0079" },
+    { nome: "JANAINA PIONER", tel: "" },
+    { nome: "JC MARMORARIA", tel: "(51)99502-3769" },
+    { nome: "LOURDES FICANHA SCHEFFER", tel: "(51)99502-0330" },
+    { nome: "LUCIANO FELIZ PENNA", tel: "" },
+    { nome: "LUZ E LUZ TOPOGRAFIA LTDA", tel: "(51) 3593-3155" },
+    { nome: "MAX", tel: "" },
+    { nome: "MICHEL KIPPER", tel: "(51)99963-3199" },
+    { nome: "NARJAN CUNHA", tel: "" },
+    { nome: "NICOLAS BAGATTINI", tel: "" },
+    { nome: "SKALEE CLIMATIZAÇÃO", tel: "(51) 3524-6571" },
+    { nome: "TERRAPLANAGEM MULLER LTDA", tel: "(51)99986-8103" },
+    { nome: "TIAGO SCHOT", tel: "" },
+    { nome: "VALMIR BARNI", tel: "" },
+    { nome: "VITOR LUCONI", tel: "(51)99540-0693" },
+  ];
+
+  const PRODUTOS = [
+    { desc:"MEMÓRIA RAM COLOR VERDE 16GB 1 CRUCIAL (CT102464BF832B)", tipo:"Peça", valor:314.00 },
+    { desc:"ADAPTADOR 2,5\" HD", tipo:"Peça", valor:20000.00 },
+    { desc:"ADAPTADOR ETHERNET USB PARA LAN RJ45 GIG", tipo:"Peça", valor:96.00 },
+    { desc:"BATERIA (3V)", tipo:"Peça", valor:12.00 },
+    { desc:"BATERIA PARA NOTEBOOK DELL INSPIRON 15 5000 (WDXOR 42WH)", tipo:"Peça", valor:346.55 },
+    { desc:"Case Hd Externo Notebook 2,5 Pol Usb 2.0", tipo:"Peça", valor:47.00 },
+    { desc:"Clamper Energia 5 Tomadas - Filtro de Linha", tipo:"Peça", valor:96.00 },
+    { desc:"DESKTOP LENOVO V50S", tipo:"Equipamento", valor:1799.00 },
+    { desc:"FONTE 200W, FORTREK", tipo:"Equipamento", valor:199.00 },
+    { desc:"FONTE AEROCOOL 350W VX-350 (EN57181)", tipo:"Peça", valor:120.00 },
+    { desc:"FONTE NOTEBOOK DELL 19.5V 4.62A", tipo:"Peça", valor:165.00 },
+    { desc:"FORMATAÇÃO COM CÓPIA DE DADOS", tipo:"Mão de obra", valor:180.00 },
+    { desc:"FORMATAÇÃO SEM CÓPIA DE DADOS", tipo:"Mão de obra", valor:150.00 },
+    { desc:"GABINETE C3TECH MICRO-ATX PRETO - MT-25V", tipo:"Equipamento", valor:99.00 },
+    { desc:"HD EXTERNO SEAGATE EXPANSION 2TB", tipo:"Equipamento", valor:389.00 },
+    { desc:"HD Seagate BarraCuda, 1TB, 3.5', SATA (ST1000DM)", tipo:"Equipamento", valor:299.00 },
+    { desc:"HORA TÉCNICA", tipo:"Mão de obra", valor:190.00 },
+    { desc:"MEMORIA DDR4 4GB PC4 2666", tipo:"Peça", valor:26.00 },
+    { desc:"MEMORIA SMART DDR4 8GB NOTEBOOK PC4-2400", tipo:"Peça", valor:177.00 },
+    { desc:"MONITOR LENOVO THINKVISION T22I-10 21.5", tipo:"Equipamento", valor:500.00 },
+    { desc:"OFFICE 2016 PROFESSIONAL PLUS", tipo:"Peça", valor:75.00 },
+    { desc:"PACOTE OFFICE PRO PLUS 2021", tipo:"Peça", valor:229.00 },
+    { desc:"PLACA GTX1060", tipo:"Peça", valor:500.00 },
+    { desc:"SSD 240 GB, PNY, SATA III", tipo:"Equipamento", valor:279.00 },
+    { desc:"SSD 256GB KNUP SATA", tipo:"Equipamento", valor:249.00 },
+    { desc:"SSD CRUCIAL BX500, 240GB (CT240BX50)", tipo:"Equipamento", valor:289.00 },
+    { desc:"SSD GIGABYTE 256GB M.2 NVMe (GSM2NE32)", tipo:"Equipamento", valor:297.70 },
+    { desc:"SSD KINGSTON A400, 240GB", tipo:"Equipamento", valor:249.00 },
+    { desc:"SSD LEXAR 240GB SATA", tipo:"Equipamento", valor:0.00 },
+    { desc:"SSD WESTERN DIGITAL BLUE 250GB (WDS250G2)", tipo:"Equipamento", valor:254.00 },
+    { desc:"SSD WD GREEN 240GB (WDS240G2)", tipo:"Equipamento", valor:289.00 },
+  ];
+  // ===================== Fim dos dados =====================
+
+  // Número do orçamento (sequencial)
+  function nextOrcNumber(){
+    const key='orcamento_counter';
+    let n=parseInt(localStorage.getItem(key),10);
+    if(!Number.isFinite(n)||n<0) n=0;
+    n+=1; localStorage.setItem(key,String(n));
+    return 'ORC-'+String(n).padStart(6,'0');
+  }
+  (function initHeader(){
+    const hoje=new Date().toISOString().slice(0,10);
+    document.getElementById('orc_data').value=hoje;
+    document.getElementById('orc_num').value=nextOrcNumber();
+  })();
+
+  const fmt=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const tbody=document.querySelector('#itens tbody');
+
+  function linha(descricao='',tipo='Peça',qtd=1,unit=0){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="ac-wrap">
+        <input class="desc" placeholder="Digite para buscar..." autocomplete="off" value="${descricao}">
+        <div class="ac-list" style="display:none;"></div>
+      </td>
+      <td>
+        <select class="tipo">
+          <option ${tipo==='Peça'?'selected':''}>Peça</option>
+          <option ${tipo==='Mão de obra'?'selected':''}>Mão de obra</option>
+          <option ${tipo==='Equipamento'?'selected':''}>Equipamento</option>
+        </select>
+      </td>
+      <td><input class="qtd" type="number" min="0" step="1" value="${qtd}"></td>
+      <td><input class="unit" type="number" min="0" step="0.01" value="${unit}"></td>
+      <td class="right"><span class="sub">R$ 0,00</span></td>
+      <td class="no-print"><button class="btn btn-outline btnDel">Remover</button></td>
+    `;
+    tbody.appendChild(tr);
+    bindRow(tr);
+    recalc();
+  }
+
+  function bindRow(tr){
+    const descInput=tr.querySelector('.desc');
+    const ac=tr.querySelector('.ac-list');
+
+    descInput.addEventListener('input',()=>{
+      const q=descInput.value.trim().toLowerCase();
+      if(!q){ ac.style.display='none'; return; }
+      const res=PRODUTOS.filter(p=>p.desc.toLowerCase().includes(q)).slice(0,20);
+      if(!res.length){ ac.style.display='none'; return; }
+      ac.innerHTML=res.map((p,i)=>`<div class="ac-item"><div>${p.desc}</div><div class="small">${p.tipo} • ${fmt(p.valor)}</div></div>`).join('');
+      ac.style.display='block';
+      Array.from(ac.children).forEach((el,idx)=>{
+        el.addEventListener('click',()=>{
+          const p=res[idx];
+          descInput.value=p.desc;
+          tr.querySelector('.tipo').value=p.tipo;
+          tr.querySelector('.unit').value=Number(p.valor||0).toFixed(2);
+          ac.style.display='none';
+          recalc();
+        });
+      });
+    });
+    descInput.addEventListener('blur',()=>setTimeout(()=>{ ac.style.display='none'; },150));
+
+    tr.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',recalc));
+    tr.querySelector('.btnDel').addEventListener('click',()=>{ tr.remove(); recalc(); });
+  }
+
+  function recalc(){
+    let pecas=0, mao=0;
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      const tipo=tr.querySelector('.tipo').value;
+      const qtd=parseFloat(tr.querySelector('.qtd').value||'0');
+      const unit=parseFloat(tr.querySelector('.unit').value||'0');
+      const sub=qtd*unit;
+      tr.querySelector('.sub').textContent=fmt(isFinite(sub)?sub:0);
+      if(tipo==='Mão de obra') mao+=sub; else pecas+=sub;
+    });
+    document.getElementById('tPecas').textContent=fmt(pecas);
+    document.getElementById('tMao').textContent=fmt(mao);
+    const desconto=parseFloat(document.getElementById('desconto').value||'0');
+    const total=Math.max(pecas+mao-(isFinite(desconto)?desconto:0),0);
+    document.getElementById('tTotal').textContent=fmt(total);
+  }
+
+  document.getElementById('desconto').addEventListener('input',recalc);
+  document.getElementById('addPeca').addEventListener('click',()=>linha('', 'Peça', 1, 0));
+  document.getElementById('addMaoObra').addEventListener('click',()=>linha('Serviço', 'Mão de obra', 1, 0));
+  linha('Diagnóstico','Mão de obra',1,0);
+
+  // Autocomplete de clientes
+  const cliNome=document.getElementById('cliente_nome');
+  const cliAC=document.getElementById('acClientes');
+  cliNome.addEventListener('input',()=>{
+    const q=cliNome.value.trim().toUpperCase();
+    if(!q){ cliAC.style.display='none'; return; }
+    const r=CLIENTES.filter(c=>c.nome.includes(q)||c.nome.toUpperCase().includes(q)).slice(0,20);
+    if(!r.length){ cliAC.style.display='none'; return; }
+    cliAC.innerHTML=r.map(c=>`<div class="ac-item"><div>${c.nome}</div><div class="small">${c.tel||''}</div></div>`).join('');
+    cliAC.style.display='block';
+    Array.from(cliAC.children).forEach((el,idx)=>{
+      el.addEventListener('click',()=>{
+        const c=r[idx];
+        cliNome.value=c.nome;
+        document.getElementById('cliente_tel').value=c.tel||'';
+        cliAC.style.display='none';
+      });
+    });
+  });
+  cliNome.addEventListener('blur',()=>setTimeout(()=>{ cliAC.style.display='none'; },150));
+
+  // PDF A4 retrato – largura útil em pontos e windowWidth coerente
+  document.getElementById('btnPdf').addEventListener('click',async()=>{
+    try{
+      const ctor=window.jspdf?.jsPDF;
+      if(!ctor){ alert('jsPDF não carregou. Abra via http(s).'); return; }
+      const doc=new ctor({ unit:'pt', format:'a4', compress:true, orientation:'portrait' });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // ~595.28 pt
+      const marginPt  = 28.35;  // 10 mm
+      const usablePt  = pageWidth - marginPt*2;
+
+      await doc.html(document.getElementById('content'),{
+        x:marginPt, y:marginPt,
+        width: usablePt,        // largura útil do PDF em pontos
+        windowWidth: 794,       // mesma base do CSS (#content)
+        autoPaging:'text',
+        html2canvas:{ scale:1, useCORS:true, logging:false },
+        callback:(d)=>{
+          const numero=document.getElementById('orc_num')?.value||'orcamento';
+          const data=(document.getElementById('orc_data')?.value||'').replaceAll('-','');
+          d.save(`${numero}-${data}.pdf`);
+        }
+      });
+    }catch(e){
+      console.error(e); alert('Falha ao gerar PDF. Veja o console.');
+    }
+  });
+
+  document.getElementById('btnPrint').addEventListener('click',()=>window.print());
+
+  // Compartilhar via URL
+  function v(id){ return document.getElementById(id).value; }
+  function s(id,val){ if(val!==undefined) document.getElementById(id).value=val; }
+  function serialize(){
+    const data={
+      c:{ n:v('cliente_nome'), t:v('cliente_tel'), e:v('cliente_email'), d:v('cliente_end') },
+      o:{ n:v('orc_num'), dt:v('orc_data'), v:v('orc_validade') },
+      eq:{ tp:v('eq_tipo'), m:v('eq_marca'), md:v('eq_modelo'), s:v('eq_serie'), t:v('eq_tensao'), df:v('eq_defeito') },
+      itens:Array.from(tbody.querySelectorAll('tr')).map(tr=>({
+        d:tr.querySelector('.desc').value, t:tr.querySelector('.tipo').value,
+        q:tr.querySelector('.qtd').value, u:tr.querySelector('.unit').value
+      })),
+      desconto:v('desconto'), cond:v('condicoes'), atend:v('atendente'), pag:v('cond_pag')
+    };
+    return encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data)))));
+  }
+  function deserialize(hash){
+    try{
+      const json=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(hash)))));
+      s('cliente_nome',json.c?.n); s('cliente_tel',json.c?.t); s('cliente_email',json.c?.e); s('cliente_end',json.c?.d);
+      s('orc_num',json.o?.n); s('orc_data',json.o?.dt); s('orc_validade',json.o?.v||7);
+      s('eq_tipo',json.eq?.tp); s('eq_marca',json.eq?.m); s('eq_modelo',json.eq?.md); s('eq_serie',json.eq?.s); s('eq_tensao',json.eq?.t); s('eq_defeito',json.eq?.df);
+      tbody.innerHTML=''; (json.itens||[]).forEach(it=>linha(it.d,it.t,it.q,it.u));
+      s('desconto',json.desconto||0); s('condicoes',json.cond||''); s('atendente',json.atend||''); s('cond_pag',json.pag||''); recalc();
+    }catch(e){}
+  }
+  document.getElementById('btnShare').addEventListener('click',async()=>{
+    const url=location.origin+location.pathname+'#data='+serialize();
+    try{ await navigator.clipboard.writeText(url); alert('Link copiado.'); }
+    catch{ prompt('Copie o link:',url); }
+  });
+  if(location.hash.startsWith('#data=')){ deserialize(location.hash.replace('#data=','')); }
+});
+</script>
+</body>
+</html>
