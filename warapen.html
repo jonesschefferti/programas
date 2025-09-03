@@ -15,11 +15,12 @@
 
     .container{ margin:24px auto; padding:0 16px; }
 
-    /* A4-friendly container: largura fixa e padding interno */
+    /* A4-friendly — largura fixa p/ casar com windowWidth */
     #content{
-      max-width: 794px;       /* ≈ 210 mm a ~96 dpi */
+      max-width: 794px;
+      width: 794px;            /* fixa a largura capturada pelo html2canvas */
       margin: 0 auto;
-      padding: 16px;          /* evita colar nas bordas */
+      padding: 16px;           /* respiro interno */
       background: var(--card);
       border: 1px solid var(--bord);
       border-radius: var(--radius);
@@ -42,6 +43,7 @@
     input,select,textarea{ width:100%; padding:10px 12px; border:1px solid var(--bord);
       border-radius:8px; background:#fff; color:var(--text); }
     textarea{ min-height:80px; resize:vertical; }
+    img{ max-width:100%; height:auto; display:block; }
 
     table{ width:100%; border-collapse:collapse; }
     th,td{ border-bottom:1px solid var(--bord); padding:10px; font-size:14px; text-align:left; }
@@ -54,21 +56,34 @@
     .totais{ display:flex; flex-direction:column; gap:6px; margin-top:14px; }
     .totais div{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
 
-    /* Autocomplete dropdown */
+    /* Autocomplete */
     .ac-wrap{ position:relative; }
     .ac-list{ position:absolute; z-index:20; top:100%; left:0; right:0; background:#fff; border:1px solid var(--bord); border-radius:8px; margin-top:4px; max-height:220px; overflow:auto; box-shadow:0 8px 24px rgba(0,0,0,.08); }
     .ac-item{ padding:8px 10px; cursor:pointer; }
     .ac-item:hover, .ac-item.active{ background:#eef2ff; }
     .small{ font-size:12px; color:#555; }
 
+    /* Impressão em retrato A4 */
+    @page{
+      size: A4 portrait;   /* força retrato */
+      margin: 10mm;        /* margens no spooler */
+    }
+    @media print{
+      body{ background:#fff !important; }
+      #content{
+        max-width: 190mm;  /* área útil */
+        width: 190mm;
+        margin: 0 auto;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+      }
+      .no-print{ display:none !important; }
+    }
+
     @media (max-width:860px){
       .col-8,.col-6,.col-4{ grid-column:span 12; }
       .logo{ height:46px; }
-    }
-    @media print{
-      .no-print{ display:none !important; }
-      body{ background:#fff; }
-      #content{ border:0; border-radius:0; }
     }
   </style>
 </head>
@@ -82,7 +97,7 @@
              crossorigin="anonymous" />
         <div>
           <div class="empresa">SchefferTec • Smart Solutions</div>
-          <div class="muted">CNPJ 53.773.431/0001-57 • Rua Presidente Lucena, 3569 – Centro, Estancia Velha 93600-000 Fone: (51) 35861675.</div>
+          <div class="muted">CNPJ 53.773.431/0001-57 • Rua Júlio de Castilhos, 183 – Centro, Novo Hamburgo 93510-365</div>
         </div>
       </div>
       <div style="text-align:right; min-width:220px;">
@@ -93,7 +108,7 @@
       </div>
     </div>
 
-    
+    <h1>Orçamento de Assistência Técnica</h1>
 
     <div class="grid" style="margin-top:8px">
       <div class="col-8">
@@ -121,7 +136,7 @@
       <div class="col-4">
         <div class="section-title">Identificação</div>
         <label>Atendente</label>
-        <input id="atendente" placeholder="Jones Scheffer" />
+        <input id="atendente" placeholder="Nome do técnico" />
         <label>Condição de pagamento</label>
         <input id="cond_pag" placeholder="Ex.: Pix/Cartão/30 dias" />
       </div>
@@ -189,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.html2canvas = window.html2canvas || html2canvas;
   }
 
-  // ===================== Dados (clientes e produtos) =====================
+  // Clientes e Produtos (resumo do cadastro)
   const CLIENTES = [
     { nome: "AGOSTINHO FRANÇA DA SILVA", tel: "" },
     { nome: "ALEXANDRE PENNA", tel: "(51)99958-7303" },
@@ -253,9 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { desc:"SSD WESTERN DIGITAL BLUE 250GB (WDS250G2)", tipo:"Equipamento", valor:254.00 },
     { desc:"SSD WD GREEN 240GB (WDS240G2)", tipo:"Equipamento", valor:289.00 },
   ];
-  // ===================== Fim dos dados =====================
 
-  // Número do orçamento (sequencial)
+  // Sequência do orçamento
   function nextOrcNumber(){
     const key='orcamento_counter';
     let n=parseInt(localStorage.getItem(key),10);
@@ -305,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!q){ ac.style.display='none'; return; }
       const res=PRODUTOS.filter(p=>p.desc.toLowerCase().includes(q)).slice(0,20);
       if(!res.length){ ac.style.display='none'; return; }
-      ac.innerHTML=res.map((p,i)=>`<div class="ac-item"><div>${p.desc}</div><div class="small">${p.tipo} • ${fmt(p.valor)}</div></div>`).join('');
+      ac.innerHTML=res.map(p=>`<div class="ac-item"><div>${p.desc}</div><div class="small">${p.tipo} • ${fmt(p.valor)}</div></div>`).join('');
       ac.style.display='block';
       Array.from(ac.children).forEach((el,idx)=>{
         el.addEventListener('click',()=>{
@@ -367,23 +381,37 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   cliNome.addEventListener('blur',()=>setTimeout(()=>{ cliAC.style.display='none'; },150));
 
-  // PDF A4 retrato – largura útil em pontos e windowWidth coerente
+  // PDF A4 retrato — dimensão explícita e base coerente
   document.getElementById('btnPdf').addEventListener('click',async()=>{
     try{
       const ctor=window.jspdf?.jsPDF;
       if(!ctor){ alert('jsPDF não carregou. Abra via http(s).'); return; }
-      const doc=new ctor({ unit:'pt', format:'a4', compress:true, orientation:'portrait' });
 
-      const pageWidth = doc.internal.pageSize.getWidth(); // ~595.28 pt
-      const marginPt  = 28.35;  // 10 mm
-      const usablePt  = pageWidth - marginPt*2;
+      // LxA em pontos — retrato
+      const a4Portrait=[595.28, 841.89];
+      const doc=new ctor({
+        unit:'pt',
+        format:a4Portrait,
+        orientation:'portrait',
+        compress:true
+      });
+
+      const pageWidth=a4Portrait;
+      const marginPt=28.35;              // 10 mm
+      const usablePt=pageWidth - marginPt*2;
 
       await doc.html(document.getElementById('content'),{
         x:marginPt, y:marginPt,
-        width: usablePt,        // largura útil do PDF em pontos
-        windowWidth: 794,       // mesma base do CSS (#content)
+        width: usablePt,               // largura útil em pontos
+        windowWidth: 794,              // mesma base do CSS
         autoPaging:'text',
-        html2canvas:{ scale:1, useCORS:true, logging:false },
+        html2canvas:{
+          scale:1,
+          useCORS:true,
+          logging:false,
+          width:794,                   // trava a largura do canvas
+          windowWidth:794
+        },
         callback:(d)=>{
           const numero=document.getElementById('orc_num')?.value||'orcamento';
           const data=(document.getElementById('orc_data')?.value||'').replaceAll('-','');
@@ -391,7 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }catch(e){
-      console.error(e); alert('Falha ao gerar PDF. Veja o console.');
+      console.error(e);
+      alert('Falha ao gerar PDF. Veja o console.');
     }
   });
 
@@ -433,3 +462,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
+
